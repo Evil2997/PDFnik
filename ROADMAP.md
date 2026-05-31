@@ -1,52 +1,37 @@
 # PDFnik — Roadmap
 
-## Current state (v0.3)
+## P0 — Shipped
 
-### Working
 - Text → PDF (paragraphs, headings, lists, price tables)
-- Photos → PDF (one per page, fills available area)
-- Voice / audio / video → transcript (Whisper)
-- YouTube URL → transcript + PDF with title, channel, date, source link
-- /done, /cancel, /start, /help commands
+- Photos → PDF (two landscape photos share one page)
+- Voice / audio / video → transcript (Whisper, model configurable via env)
+- YouTube single video → transcript + PDF (title, channel, date, source link)
+- YouTube playlist → per-video transcripts + combined PDF with live progress notifications
+- LLM summary block in YouTube PDF (Anthropic / OpenAI / Ollama, opt-in via env)
+- Cache-aware batch progress: consecutive cached videos reported as one summary message
+- /done, /cancel (with confirmation guard), /start, /help
 - Session pause timer with reminder
 - Deduplication of concurrent identical requests
 - Transcription cache (SQLite, keyed by content hash + model config)
-- Retry logic (up to 3 attempts per job)
-- Dead Letter Queue — failed jobs land in txt.dead / pdf.dead, logged for review
+- Retry logic (up to 3 attempts per job) + Dead Letter Queue (txt.dead / pdf.dead)
 - Health check endpoint — GET /health checks RabbitMQ, files_storage, runs DB
-- Whisper model configurable via TRANSCRIBE_MODEL env var (base → large-v3)
 - CI (GitHub Actions): lint → test → docker build
 - pre-commit: ruff, detect-secrets
 - Coverage: Backend ≥70%, TelegramBot ≥65%
 
-### Known limitations
-- DLQ is log-only (no alerting, no Telegram notification)
-
 ---
 
-## P1 — Stability ✅ Done
+## P2 — Features
 
-- [x] Dead Letter Queue for transcription and PDF failures
-- [x] Health check endpoint (GET /health)
-- [x] Whisper model configurable via env (TRANSCRIBE_MODEL=large-v3)
-- [x] YouTube → PDF for long transcripts — both short and document delivery paths now generate PDF
-- [x] /cancel confirmation guard
-
----
-
-## P2 — Features (next)
-
-- [x] Multi-image layout — fit 2 landscape images per page
-- [ ] Batch YouTube — multiple URLs → one combined PDF
-- [ ] LLM summary — short summary block at top of YouTube PDF
-- [ ] OCR — extract text from images, include in PDF
+- [ ] Batch YouTube — accept multiple URLs in one message → one combined PDF
+- [ ] OCR — extract text from images (approach TBD: frame-by-frame model scan)
 
 ---
 
 ## P3 — Platform
 
 ### Internal dashboard (FastAPI)
-Browser-based control panel for self-use (and eventually for the wife):
+Browser-based control panel:
 - Queue depth and message rates (RabbitMQ management API)
 - Transcription job history and cache hit rate
 - Storage usage graph

@@ -17,6 +17,8 @@ User (Telegram)
 │  • vtt handler      │──── txt.transcribe ─────────┼──┐
 │  • pdf consumer     │◄─── pdf.send ───────────────┘  │
 │  • txt consumer     │◄─── txt.done ───────────────────┘
+│                     │◄─── txt.progress ───────────────┐  (playlist only)
+│                     │◄─── txt.cache_summary ──────────┘  (playlist only)
 └─────────────────────┘
            │                    │
          Redis              RabbitMQ
@@ -32,6 +34,7 @@ User (Telegram)
                     │  txt.transcribe ──► │
                     │    yt-dlp + ffmpeg  │
                     │    Whisper          │
+                    │    LLM summary      │
                     │    → txt.done       │
                     └─────────┬───────────┘
                               │
@@ -52,11 +55,26 @@ User (Telegram)
 |---|---|---|
 | `rabbitmq` | rabbitmq:3-management | Message broker |
 | `redis` | redis:7 | Session state, dedup locks |
-| `pdf-service` | local build | PDF + transcription |
+| `pdf-service` | local build | PDF generation + transcription |
 | `telegram-bot` | local build | Telegram frontend |
 | `files-cleaner` | local build | Expired file removal |
 
 All containers share the `files_storage` volume.
+
+---
+
+## RabbitMQ queues
+
+| Queue | Direction | Purpose |
+|---|---|---|
+| `txt.transcribe` | Bot → Backend | Transcription job request |
+| `txt.done` | Backend → Bot | Transcription result |
+| `txt.progress` | Backend → Bot | Per-video progress during playlist (playlist only) |
+| `txt.cache_summary` | Backend → Bot | Batch cache-hit summary during playlist (playlist only) |
+| `txt.dead` | Backend (DLQ) | Failed transcription jobs |
+| `pdf.generate` | Bot → Backend | PDF generation request |
+| `pdf.send` | Backend → Bot | Generated PDF ready for delivery |
+| `pdf.dead` | Backend (DLQ) | Failed PDF jobs |
 
 ---
 
@@ -84,19 +102,33 @@ User sends voice/audio/video
   → TelegramBot reads transcript, sends as text or file
 ```
 
-### YouTube URL → Transcript + PDF
+### YouTube single video → Transcript + PDF
 
 ```
-User sends YouTube URL
+User sends YouTube URL (single video)
   → TelegramBot detects URL, publishes to txt.transcribe {target: {kind: url, value: ...}}
   → Backend fetches metadata (yt-dlp --dump-json)
   → Backend downloads audio (yt-dlp), normalizes (ffmpeg), transcribes (Whisper)
+  → Optionally generates LLM summary (Anthropic / OpenAI / Ollama)
   → Publishes to txt.done {txt_storage_key: ..., youtube_metadata: {...}}
   → TelegramBot delivers transcript
-  → TelegramBot builds PdfOrder with title/channel/date header
+  → TelegramBot builds PdfOrder with title/channel/date header + optional summary block
   → Publishes to pdf.generate
   → Backend generates PDF, publishes to pdf.send
   → TelegramBot sends PDF to user
+```
+
+### YouTube playlist → Transcript + PDF
+
+```
+User sends YouTube playlist URL
+  → TelegramBot detects playlist URL, publishes to txt.transcribe
+  → Backend detects playlist via is_playlist_url(), calls transcribe_playlist()
+  → For each video in playlist:
+      if not cached → transcribes, publishes txt.progress {job_id, chat_id, current, total, title}
+      if cached streak ends or playlist complete → publishes txt.cache_summary {job_id, chat_id, cached_count, total}
+  → Backend combines all transcripts, publishes txt.done
+  → TelegramBot follows same PDF delivery path as single video
 ```
 
 ---
