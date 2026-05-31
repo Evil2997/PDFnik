@@ -1,0 +1,7 @@
+[tool.uv.workspace]
+members = [
+    "PDFnik-Backend",
+    "PDFnik-files_cleaner",
+    "PDFnik-Schemes",
+    "PDFnik-TelegramBot",
+]

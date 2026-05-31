@@ -1,0 +1,107 @@
+# PDFnik - docker compose
+#
+# Default build contexts point to sibling directories in this repo:
+#
+#   PDFnik/
+#   ├── docker-compose.yaml   <- this file
+#   ├── PDFnik-Backend/       <- FastAPI + PDF/transcription service
+#   ├── PDFnik-TelegramBot/   <- Telegram bot
+#   └── PDFnik-files_cleaner/ <- scheduled file cleanup
+#
+# Override paths via .env if your layout differs:
+#   PDF_SERVICE_PATH=../PDFnik-Backend
+#   TELEGRAM_BOT_PATH=../PDFnik-TelegramBot
+#   FILES_CLEANER_PATH=../PDFnik-files_cleaner
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.1.5-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - pdfnik_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    hostname: pdfbot_redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/redis_data
+    restart: unless-stopped
+    networks:
+      - pdfnik_network
+
+  telegram-bot:
+    build:
+      context: ${TELEGRAM_BOT_PATH:-./PDFnik-TelegramBot}
+      dockerfile: Dockerfile
+    container_name: telegram-bot
+    volumes:
+      - files_storage:/data_files_storage
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - pdfnik_network
+
+  pdf-service:
+    build:
+      context: ${PDF_SERVICE_PATH:-./PDFnik-Backend}
+      dockerfile: Dockerfile
+    container_name: pdf-service
+    volumes:
+      - files_storage:/data_files_storage
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - pdfnik_network
+
+  files-cleaner:
+    build:
+      context: ${FILES_CLEANER_PATH:-./PDFnik-files_cleaner}
+      dockerfile: Dockerfile
+    container_name: files-cleaner
+    volumes:
+      - files_storage:/data_files_storage
+    env_file:
+      - .env
+    command: ["python", "main.py"]
+    restart: unless-stopped
+    networks:
+      - pdfnik_network
+
+
+volumes:
+  redis_data:
+    name: redis_data
+  files_storage:
+    name: files_storage
+
+networks:
+  pdfnik_network:
+    name: pdfnik_network
