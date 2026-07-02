@@ -24,7 +24,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout 43200000"
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout 86400000"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -71,6 +71,7 @@ services:
     container_name: pdf-service
     volumes:
       - files_storage:/data_files_storage
+      - hf_cache:/root/.cache/huggingface
     env_file:
       - .env
     depends_on:
@@ -102,6 +103,8 @@ volumes:
     name: redis_data
   files_storage:
     name: files_storage
+  hf_cache:
+    name: hf_cache
 
 networks:
   pdfnik_network:
