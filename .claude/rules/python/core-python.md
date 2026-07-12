@@ -30,6 +30,7 @@
 | Файл в `tests/`, `test_*.py`, `conftest.py`, обсуждение coverage | `.claude/rules/python/testing.md` |
 | Работа в PDFnik-Backend (FastAPI, RabbitMQ, SQLite) | `.claude/rules/python/python-backend.md` |
 | Работа в PDFnik-TelegramBot (aiogram) | `.claude/rules/python/python-bot.md` |
+| Возврат/передача структуры данных как `dict`/`tuple` с именованными полями | `.claude/rules/python/pydantic-over-primitives.md` |
 
 ## 1. Типизация
 
