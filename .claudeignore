@@ -1,0 +1,37 @@
+# Uploaded media files
+**/uploads/
+**/*.wav
+**/*.mp3
+**/*.mp4
+**/*.ogg
+**/*.webm
+
+# Python artifacts
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.mypy_cache/
+**/.ruff_cache/
+**/.pytest_cache/
+
+# Virtual environments
+**/.venv/
+**/venv/
+
+# Secrets — block real env files, allow examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Build artifacts
+**/dist/
+**/*.egg-info/
+
+# DB files on the shared volume
+**/*.db
+**/*.sqlite
+
+# Git internals
+**/.git/

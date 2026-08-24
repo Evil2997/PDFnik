@@ -27,3 +27,8 @@ __pycache__/**
 coverage.xml
 htmlcov/
 htmlcov/**
+
+# Claude Code local session state (not shared)
+.claude/settings.local.json
+.claude/command-logs/
+.claude/command-logs/**
