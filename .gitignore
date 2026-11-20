@@ -32,3 +32,9 @@ htmlcov/**
 .claude/settings.local.json
 .claude/command-logs/
 .claude/command-logs/**
+
+# Service repositories - each is its own git repository with its own remote
+/PDFnik-Backend/
+/PDFnik-Schemes/
+/PDFnik-TelegramBot/
+/PDFnik-files_cleaner/
